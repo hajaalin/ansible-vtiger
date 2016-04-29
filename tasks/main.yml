@@ -1,0 +1,59 @@
+---
+# tasks file for role "vtiger"
+
+- include: "setup-{{ ansible_os_family }}.yml"
+
+- name: remove existing installation
+  file: path='{{ vtiger_root_directory }}' state=absent
+
+- name: create install directory
+  file: path="{{ vtiger_root_directory }}" state=directory owner={{ vtiger_apache_user }} group={{ vtiger_apache_user }} mode=0700
+- name: create log directory
+  file: path="{{ vtiger_log_dir }}" state=directory owner={{ vtiger_apache_user }} group={{ vtiger_apache_user }} mode=0775
+
+- block:
+  - name: unpack local source archive
+    unarchive: src="{{ vtiger_source_local_archive }}" dest=/tmp
+  - name: move source to installation directory
+    shell: mv /tmp/vtigercrm/* "{{ vtiger_root_directory }}"
+  when: vtiger_source == "local_archive"
+
+- name: copy source from local directory
+  synchronize: src="{{ vtiger_source_local_dir }}" dest="{{ vtiger_root_directory }}"
+  when: vtiger_source == "local_directory"
+
+- block:
+  - name: check if known_hosts_github exists
+    stat: path="{{ vtiger_source_git_known_hosts_file }}"
+    register: known_hosts_github
+  # https://gist.github.com/maxim/871e611d4bc02c633c67
+  - name: ensure github.com is a known host
+    lineinfile:
+      dest: "{{ vtiger_source_git_known_hosts_file }}"
+      create: yes
+      state: present
+      line: "{{ lookup('pipe', 'ssh-keyscan -t rsa github.com') }}"
+      regexp: "^github\\.com"
+    when: not known_hosts_github.stat.exists
+  - name: set permissions on /root/.ssh/
+    file: path=/root/.ssh mode=0700
+  - name: set permissions on known_hosts_github
+    file: path="{{ vtiger_source_git_known_hosts_file }}" mode=0600
+  - name: get source from Git
+    git: repo="{{ vtiger_source_git_repo }}" version="{{ vtiger_source_git_version }}" dest="{{ vtiger_root_directory }}" accept_hostkey=yes ssh_opts="-o UserKnownHostsFile={{ vtiger_source_git_known_hosts_file }}"
+  when: vtiger_source == "git"
+
+
+- name: template vtiger config file
+  template: src=config.template.php dest="{{ vtiger_root_directory }}/config.inc.php"
+#
+# - name: template vtiger log config file
+#   template: src=log4php.config.xml dest="{{ vtiger_root_directory }}/config/log4php.config.xml"
+#
+# - name: create .htaccess file
+#   shell: echo "DirectoryIndex index.php" > "{{ vtiger_root_directory }}/.htaccess"
+#   args:
+#     creates: "{{ vtiger_root_directory }}/.htaccess"
+
+- name: fix ownership of installation directory
+  file: path="{{ vtiger_root_directory }}" recurse=yes owner={{ vtiger_apache_user }} group={{ vtiger_apache_user }}

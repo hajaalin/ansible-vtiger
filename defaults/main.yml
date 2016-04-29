@@ -1,0 +1,37 @@
+---
+# defaults file for ansible-vtiger-apache
+
+vtiger_apache_user: "apache"
+# source type: local_archive, local_directory or git
+vtiger_source: "local_archive"
+
+vtiger_source_local_archive: "vtigercrm6.4.0.tar.gz"
+vtiger_source_local_dir: ""
+vtiger_source_git_repo: ""
+vtiger_source_git_version: ""
+vtiger_source_git_known_hosts_file: "/root/.ssh/known_hosts_github"
+
+
+# these variables will be templated in Booked configuration (config/config.php)
+vtiger_db_username: "vtiger_user"
+vtiger_db_password: "password"
+vtiger_db_name: "vtiger"
+vtiger_db_server: "127.0.0.1"
+vtiger_db_port: "3306"
+vtiger_db_type: "mysqli"
+vtiger_db_status: "true"
+
+vtiger_site_url: inventory_hostname
+
+vtiger_root_directory: "/var/www/html"
+vtiger_cache_directory: "{{ vtiger_root_directory }}/cache"
+vtiger_tmp_directory: "{{ vtiger_cache_directory }}/images"
+vtiger_import_directory: "{{ vtiger_cache_directory }}/import"
+vtiger_upload_directory: "{{ vtiger_cache_directory }}/upload"
+
+vtiger_master_currency: "Euro"
+vtiger_default_charset: "UTF-8"
+vtiger_application_unique_key: ""
+
+# log directory and levels
+vtiger_log_dir: "/var/log/vtiger"
